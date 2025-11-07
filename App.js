@@ -17,6 +17,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem('auth_token');
+      console.log('Token:', token);
       setInitialRoute(token ? 'Home' : 'Login');
     })();
   }, []);
