@@ -294,9 +294,49 @@ export const adminApi = {
     return apiPut(`/admin/users/${userId}/ban`, { isBanned }, { auth: true });
   },
   
+  // Products
+  async getProducts(filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (filters.status) queryParams.append("status", filters.status);
+    if (filters.page) queryParams.append("page", filters.page);
+    if (filters.limit) queryParams.append("limit", filters.limit);
+    
+    const queryString = queryParams.toString();
+    const path = `/admin/products${queryString ? `?${queryString}` : ""}`;
+    return apiGet(path, { auth: true });
+  },
+  async approveProduct(productId, { status, rejectedReason }) {
+    return apiPut(`/products/${productId}/approve`, { status, rejectedReason }, { auth: true });
+  },
+  
   // Revenue
   async getRevenue() {
     return apiGet("/admin/revenue", { auth: true });
+  },
+};
+
+export const customerApi = {
+  async logout() {
+    return apiPost("/auth/logout", {}, { auth: true });
+  },
+  
+  // Products
+  async getProducts(filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (filters.category) queryParams.append("category", filters.category);
+    if (filters.search) queryParams.append("search", filters.search);
+    if (filters.brand) queryParams.append("brand", filters.brand);
+    if (filters.minPrice) queryParams.append("minPrice", filters.minPrice);
+    if (filters.maxPrice) queryParams.append("maxPrice", filters.maxPrice);
+    if (filters.page) queryParams.append("page", filters.page);
+    if (filters.limit) queryParams.append("limit", filters.limit);
+    
+    const queryString = queryParams.toString();
+    const path = `/products${queryString ? `?${queryString}` : ""}`;
+    return apiGet(path, { auth: false }); // Public endpoint
+  },
+  async getProductById(productId) {
+    return apiGet(`/products/${productId}`, { auth: false }); // Public endpoint
   },
 };
 
