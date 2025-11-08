@@ -276,5 +276,29 @@ export const shopApi = {
   },
 };
 
+export const adminApi = {
+  async logout() {
+    return apiPost("/auth/logout", {}, { auth: true });
+  },
+  
+  // Stats
+  async getStats() {
+    return apiGet("/admin/stats", { auth: true });
+  },
+  
+  // Users
+  async getUsers() {
+    return apiGet("/admin/users", { auth: true });
+  },
+  async banUser(userId, { isBanned }) {
+    return apiPut(`/admin/users/${userId}/ban`, { isBanned }, { auth: true });
+  },
+  
+  // Revenue
+  async getRevenue() {
+    return apiGet("/admin/revenue", { auth: true });
+  },
+};
+
 
 

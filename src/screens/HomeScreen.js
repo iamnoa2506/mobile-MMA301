@@ -19,11 +19,15 @@ export default function HomeScreen({ navigation }) {
             routes: [{ name: "ShopHome" }],
           });
         } else if (userData?.roleName === "ADMIN") {
-          // TODO: Navigate to Admin screens when implemented
-          // navigation.reset({ index: 0, routes: [{ name: "AdminHome" }] });
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "AdminHome" }],
+          });
         } else if (userData?.roleName === "CUSTOMER") {
-          // TODO: Navigate to Customer screens when implemented
-          // navigation.reset({ index: 0, routes: [{ name: "CustomerHome" }] });
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "CustomerHome" }],
+          });
         }
       }
     })();
