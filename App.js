@@ -16,6 +16,14 @@ import ShopPackageScreen from './src/screens/shop/ShopPackageScreen';
 import ShopCreatePostScreen from './src/screens/shop/ShopCreatePostScreen';
 import ShopPostsScreen from './src/screens/shop/ShopPostsScreen';
 
+// Admin Screens
+import AdminHomeScreen from './src/screens/admin/AdminHomeScreen';
+import AdminUsersScreen from './src/screens/admin/AdminUsersScreen';
+import AdminRevenueScreen from './src/screens/admin/AdminRevenueScreen';
+
+// Customer Screens
+import CustomerHomeScreen from './src/screens/customer/CustomerHomeScreen';
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -32,6 +40,10 @@ export default function App() {
         // Redirect based on role
         if (user?.roleName === 'SHOP') {
           setInitialRoute('ShopHome');
+        } else if (user?.roleName === 'ADMIN') {
+          setInitialRoute('AdminHome');
+        } else if (user?.roleName === 'CUSTOMER') {
+          setInitialRoute('CustomerHome');
         } else {
           setInitialRoute('Home');
         }
@@ -65,6 +77,14 @@ export default function App() {
           <Stack.Screen name="ShopPackage" component={ShopPackageScreen} options={{ title: 'Gói đăng bài' }} />
           <Stack.Screen name="ShopCreatePost" component={ShopCreatePostScreen} options={{ title: 'Tạo bài đăng' }} />
           <Stack.Screen name="ShopPosts" component={ShopPostsScreen} options={{ title: 'Quản lý bài đăng' }} />
+          
+          {/* Admin Screens */}
+          <Stack.Screen name="AdminHome" component={AdminHomeScreen} options={{ title: 'Trang chủ Admin' }} />
+          <Stack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ title: 'Quản lý User' }} />
+          <Stack.Screen name="AdminRevenue" component={AdminRevenueScreen} options={{ title: 'Doanh thu' }} />
+          
+          {/* Customer Screens */}
+          <Stack.Screen name="CustomerHome" component={CustomerHomeScreen} options={{ title: 'Trang chủ' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
