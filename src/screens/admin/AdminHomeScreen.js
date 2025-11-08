@@ -119,6 +119,12 @@ export default function AdminHomeScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Quản lý</Text>
         <TouchableOpacity
           style={styles.actionBtn}
+          onPress={() => navigation.navigate("AdminProducts")}
+        >
+          <Text style={styles.actionBtnText}>📦 Duyệt sản phẩm</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionBtn}
           onPress={() => navigation.navigate("AdminUsers")}
         >
           <Text style={styles.actionBtnText}>👥 Quản lý User</Text>
