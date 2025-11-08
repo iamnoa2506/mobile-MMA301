@@ -15,6 +15,7 @@ import ShopWalletScreen from './src/screens/shop/ShopWalletScreen';
 import ShopPackageScreen from './src/screens/shop/ShopPackageScreen';
 import ShopCreatePostScreen from './src/screens/shop/ShopCreatePostScreen';
 import ShopPostsScreen from './src/screens/shop/ShopPostsScreen';
+import ShopContactsScreen from './src/screens/shop/ShopContactsScreen';
 
 // Admin Screens
 import AdminHomeScreen from './src/screens/admin/AdminHomeScreen';
@@ -25,6 +26,7 @@ import AdminProductsScreen from './src/screens/admin/AdminProductsScreen';
 // Customer Screens
 import CustomerHomeScreen from './src/screens/customer/CustomerHomeScreen';
 import CustomerProductDetailScreen from './src/screens/customer/CustomerProductDetailScreen';
+import CustomerProfileScreen from './src/screens/customer/CustomerProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -79,6 +81,7 @@ export default function App() {
           <Stack.Screen name="ShopPackage" component={ShopPackageScreen} options={{ title: 'Gói đăng bài' }} />
           <Stack.Screen name="ShopCreatePost" component={ShopCreatePostScreen} options={{ title: 'Tạo bài đăng' }} />
           <Stack.Screen name="ShopPosts" component={ShopPostsScreen} options={{ title: 'Quản lý bài đăng' }} />
+          <Stack.Screen name="ShopContacts" component={ShopContactsScreen} options={{ title: 'Thông tin liên hệ' }} />
           
           {/* Admin Screens */}
           <Stack.Screen name="AdminHome" component={AdminHomeScreen} options={{ title: 'Trang chủ Admin' }} />
@@ -89,6 +92,7 @@ export default function App() {
           {/* Customer Screens */}
           <Stack.Screen name="CustomerHome" component={CustomerHomeScreen} options={{ title: 'Trang chủ' }} />
           <Stack.Screen name="CustomerProductDetail" component={CustomerProductDetailScreen} options={{ title: 'Chi tiết sản phẩm' }} />
+          <Stack.Screen name="CustomerProfile" component={CustomerProfileScreen} options={{ title: 'Thông tin cá nhân' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

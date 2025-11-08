@@ -57,6 +57,36 @@ export default function ShopPostsScreen({ navigation }) {
     navigation.navigate("ShopCreatePost", { postId: post._id, post });
   };
 
+  const handleToggleStatus = (post) => {
+    if (post.status !== "APPROVED" && post.status !== "INACTIVE") {
+      Alert.alert("Thông báo", "Chỉ có thể ẩn/hiện sản phẩm đã được duyệt");
+      return;
+    }
+
+    const newStatus = post.status === "APPROVED" ? "INACTIVE" : "APPROVED";
+    const action = newStatus === "INACTIVE" ? "ẩn" : "hiện";
+    
+    Alert.alert(
+      "Xác nhận",
+      `Bạn có chắc chắn muốn ${action} sản phẩm này?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xác nhận",
+          onPress: async () => {
+            try {
+              await shopApi.updateProductStatus(post._id, { status: newStatus });
+              Alert.alert("Thành công", `${action === "ẩn" ? "Ẩn" : "Hiện"} sản phẩm thành công`);
+              loadPosts();
+            } catch (e) {
+              Alert.alert("Lỗi", e?.message || "Không thể cập nhật trạng thái");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -91,14 +121,29 @@ export default function ShopPostsScreen({ navigation }) {
                     ? styles.statusActive
                     : post.status === "PENDING"
                     ? styles.statusPending
+                    : post.status === "REJECTED"
+                    ? styles.statusRejected
                     : styles.statusInactive,
                 ]}
               >
-                <Text style={styles.statusText}>
+                <Text
+                  style={[
+                    styles.statusText,
+                    post.status === "APPROVED"
+                      ? styles.statusTextActive
+                      : post.status === "PENDING"
+                      ? styles.statusTextPending
+                      : post.status === "REJECTED"
+                      ? styles.statusTextRejected
+                      : styles.statusTextInactive,
+                  ]}
+                >
                   {post.status === "APPROVED"
                     ? "Đã duyệt"
                     : post.status === "PENDING"
                     ? "Chờ duyệt"
+                    : post.status === "REJECTED"
+                    ? "Đã từ chối"
                     : "Đã ẩn"}
                 </Text>
               </View>
@@ -113,13 +158,30 @@ export default function ShopPostsScreen({ navigation }) {
             </Text>
 
             <View style={styles.postFooter}>
-              <Text style={styles.postPrice}>
-                {post.price?.amount
-                  ? post.price.amount.toLocaleString("vi-VN")
-                  : post.price?.toLocaleString("vi-VN") || 0}{" "}
-                đ
-              </Text>
+              <View>
+                <Text style={styles.postPrice}>
+                  {post.price?.amount
+                    ? post.price.amount.toLocaleString("vi-VN")
+                    : post.price?.toLocaleString("vi-VN") || 0}{" "}
+                  đ
+                </Text>
+                {post.stock !== undefined && (
+                  <Text style={styles.postStock}>
+                    Số lượng: {post.stock}
+                  </Text>
+                )}
+              </View>
               <View style={styles.postActions}>
+                {(post.status === "APPROVED" || post.status === "INACTIVE") && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.toggleBtn]}
+                    onPress={() => handleToggleStatus(post)}
+                  >
+                    <Text style={styles.actionBtnText}>
+                      {post.status === "APPROVED" ? "Ẩn" : "Hiện"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={styles.actionBtn}
                   onPress={() => handleEdit(post)}
@@ -242,13 +304,27 @@ const styles = StyleSheet.create({
   statusPending: {
     backgroundColor: "#fff3cd",
   },
-  statusInactive: {
+  statusRejected: {
     backgroundColor: "#f8d7da",
+  },
+  statusInactive: {
+    backgroundColor: "#e2e3e5",
   },
   statusText: {
     fontSize: 10,
     fontWeight: "600",
+  },
+  statusTextActive: {
     color: "#155724",
+  },
+  statusTextPending: {
+    color: "#856404",
+  },
+  statusTextRejected: {
+    color: "#721c24",
+  },
+  statusTextInactive: {
+    color: "#383d41",
   },
   postCategory: {
     fontSize: 12,
@@ -273,6 +349,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#00b894",
+  },
+  postStock: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  toggleBtn: {
+    backgroundColor: "#fff3cd",
   },
   postActions: {
     flexDirection: "row",

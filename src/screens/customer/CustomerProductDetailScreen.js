@@ -8,17 +8,64 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  TextInput,
+  Modal,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { customerApi } from "../../api/client";
 
 export default function CustomerProductDetailScreen({ route, navigation }) {
   const { productId } = route.params;
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hasContacted, setHasContacted] = useState(false);
+  const [checkingContact, setCheckingContact] = useState(false);
+  const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerEmail: "",
+    message: "",
+  });
 
   useEffect(() => {
     loadProduct();
+    loadUserInfo();
+    checkContactStatus();
   }, [productId]);
+
+  const loadUserInfo = async () => {
+    try {
+      // Try to load from API first to get latest profile
+      try {
+        const res = await customerApi.getProfile();
+        const user = res?.data?.user || {};
+        setContactForm({
+          customerName: user.fullName || user.email || "",
+          customerPhone: user.phoneNumber || "",
+          customerEmail: user.email || "",
+          message: "",
+        });
+        // Update AsyncStorage
+        await AsyncStorage.setItem("auth_user", JSON.stringify(user));
+      } catch (apiError) {
+        // Fallback to AsyncStorage if API fails
+        const userStr = await AsyncStorage.getItem("auth_user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          setContactForm({
+            customerName: user.fullName || user.email || "",
+            customerPhone: user.phoneNumber || "",
+            customerEmail: user.email || "",
+            message: "",
+          });
+        }
+      }
+    } catch (e) {
+      console.log("Load user info error:", e?.message || e);
+    }
+  };
 
   const loadProduct = async () => {
     try {
@@ -34,15 +81,89 @@ export default function CustomerProductDetailScreen({ route, navigation }) {
     }
   };
 
+  const checkContactStatus = async () => {
+    try {
+      setCheckingContact(true);
+      const userStr = await AsyncStorage.getItem("auth_user");
+      let email = null;
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        email = user.email;
+      }
+      const res = await customerApi.checkContact(productId, email);
+      setHasContacted(res?.data?.hasContacted || false);
+    } catch (e) {
+      console.log("Check contact error:", e?.message || e);
+      setHasContacted(false);
+    } finally {
+      setCheckingContact(false);
+    }
+  };
+
   const handleContactShop = () => {
-    if (product?.shopId?.phoneNumber) {
+    setContactModalVisible(true);
+  };
+
+  const handleSubmitContact = async () => {
+    // Validate
+    if (!contactForm.customerName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên của bạn");
+      return;
+    }
+    if (!contactForm.customerPhone.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập số điện thoại");
+      return;
+    }
+    if (!contactForm.customerEmail.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập email");
+      return;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactForm.customerEmail.trim())) {
+      Alert.alert("Lỗi", "Email không hợp lệ");
+      return;
+    }
+
+    // Validate phone
+    const phoneRegex = /^[0-9]{10,11}$/;
+    if (!phoneRegex.test(contactForm.customerPhone.replace(/\s/g, ""))) {
+      Alert.alert("Lỗi", "Số điện thoại không hợp lệ (10-11 số)");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await customerApi.contactShop(productId, {
+        customerName: contactForm.customerName.trim(),
+        customerPhone: contactForm.customerPhone.trim(),
+        customerEmail: contactForm.customerEmail.trim(),
+        message: contactForm.message.trim(),
+      });
       Alert.alert(
-        "Liên hệ Shop",
-        `Số điện thoại: ${product.shopId.phoneNumber}`,
-        [{ text: "OK" }]
+        "Thành công",
+        "Gửi thông tin liên hệ thành công. Shop sẽ liên hệ với bạn sớm nhất.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setContactModalVisible(false);
+              setHasContacted(true);
+              setContactForm({
+                customerName: contactForm.customerName,
+                customerPhone: "",
+                customerEmail: contactForm.customerEmail,
+                message: "",
+              });
+            },
+          },
+        ]
       );
-    } else {
-      Alert.alert("Thông tin", "Shop chưa cập nhật số điện thoại");
+    } catch (e) {
+      Alert.alert("Lỗi", e?.message || "Không thể gửi thông tin liên hệ");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -105,10 +226,13 @@ export default function CustomerProductDetailScreen({ route, navigation }) {
               <Text style={styles.shopAddress}>📍 {product.shopId.address}</Text>
             )}
             <TouchableOpacity
-              style={styles.contactBtn}
-              onPress={handleContactShop}
+              style={[styles.contactBtn, hasContacted && styles.contactedBtn]}
+              onPress={hasContacted ? undefined : handleContactShop}
+              disabled={hasContacted}
             >
-              <Text style={styles.contactBtnText}>Liên hệ Shop</Text>
+              <Text style={styles.contactBtnText}>
+                {hasContacted ? "✓ Đã liên hệ với người bán" : "📞 Liên hệ với người bán"}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -162,6 +286,86 @@ export default function CustomerProductDetailScreen({ route, navigation }) {
           </Text>
         </View>
       </View>
+
+      {/* Contact Modal */}
+      <Modal
+        visible={contactModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setContactModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Liên hệ với người bán</Text>
+            <Text style={styles.modalSubtitle}>
+              Điền thông tin để Shop liên hệ với bạn
+            </Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Họ và tên *"
+              value={contactForm.customerName}
+              onChangeText={(text) =>
+                setContactForm({ ...contactForm, customerName: text })
+              }
+            />
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Số điện thoại *"
+              value={contactForm.customerPhone}
+              onChangeText={(text) =>
+                setContactForm({ ...contactForm, customerPhone: text })
+              }
+              keyboardType="phone-pad"
+            />
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Email *"
+              value={contactForm.customerEmail}
+              onChangeText={(text) =>
+                setContactForm({ ...contactForm, customerEmail: text })
+              }
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <TextInput
+              style={[styles.modalInput, styles.modalTextArea]}
+              placeholder="Tin nhắn (tùy chọn)"
+              value={contactForm.message}
+              onChangeText={(text) =>
+                setContactForm({ ...contactForm, message: text })
+              }
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalCancelBtn]}
+                onPress={() => setContactModalVisible(false)}
+                disabled={submitting}
+              >
+                <Text style={styles.modalCancelText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalSubmitBtn]}
+                onPress={handleSubmitContact}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>Gửi</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -257,6 +461,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
+  contactedBtn: {
+    backgroundColor: "#6c757d",
+    opacity: 0.8,
+  },
   contactBtnText: {
     color: "#fff",
     fontSize: 14,
@@ -328,6 +536,70 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#00b894",
     textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    width: "90%",
+    maxWidth: 400,
+    maxHeight: "90%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  modalTextArea: {
+    minHeight: 100,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  modalBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modalCancelBtn: {
+    backgroundColor: "#f0f0f0",
+  },
+  modalCancelText: {
+    color: "#666",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modalSubmitBtn: {
+    backgroundColor: "#00b894",
+  },
+  modalSubmitText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 
