@@ -16,6 +16,7 @@ export default function ShopCreatePostScreen({ navigation }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("1");
   const [category, setCategory] = useState("BATTERY"); // BATTERY or ELECTRIC_SCOOTER
   const [images, setImages] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -74,6 +75,12 @@ export default function ShopCreatePostScreen({ navigation }) {
       return;
     }
 
+    const stockNum = parseInt(stock) || 0;
+    if (stockNum < 0) {
+      Alert.alert("Lỗi", "Số lượng không hợp lệ");
+      return;
+    }
+
     if (packages.length === 0) {
       Alert.alert(
         "Lỗi",
@@ -89,6 +96,7 @@ export default function ShopCreatePostScreen({ navigation }) {
         title,
         description,
         price: priceNum,
+        stock: stockNum,
         category,
         images,
       });
@@ -99,6 +107,7 @@ export default function ShopCreatePostScreen({ navigation }) {
             setTitle("");
             setDescription("");
             setPrice("");
+            setStock("1");
             setCategory("BATTERY");
             setImages([]);
             navigation.navigate("ShopPosts");
@@ -182,6 +191,15 @@ export default function ShopCreatePostScreen({ navigation }) {
           keyboardType="numeric"
           value={price}
           onChangeText={handlePriceChange}
+        />
+
+        <Text style={styles.label}>Số lượng *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Nhập số lượng sản phẩm"
+          keyboardType="numeric"
+          value={stock}
+          onChangeText={setStock}
         />
 
         <Text style={styles.label}>Hình ảnh (URL, tách bằng dấu phẩy)</Text>

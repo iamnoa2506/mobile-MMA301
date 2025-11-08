@@ -90,11 +90,19 @@ export default function CustomerHomeScreen({ navigation }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Xin chào,</Text>
-          <Text style={styles.customerName}>{user?.email || "Customer"}</Text>
+          <Text style={styles.customerName}>{user?.fullName || user?.email || "Customer"}</Text>
         </View>
-        <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Đăng xuất</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("CustomerProfile")}
+            style={styles.profileBtn}
+          >
+            <Text style={styles.profileBtnText}>👤</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>Đăng xuất</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search and Filter */}
@@ -202,6 +210,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111",
     marginTop: 4,
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  profileBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#e3f2fd",
+  },
+  profileBtnText: {
+    fontSize: 20,
   },
   logoutBtn: {
     paddingHorizontal: 12,

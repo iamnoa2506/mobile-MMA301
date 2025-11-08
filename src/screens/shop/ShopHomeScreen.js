@@ -151,6 +151,12 @@ export default function ShopHomeScreen({ navigation }) {
         >
           <Text style={styles.actionBtnText}>📋 Quản lý bài đăng</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => navigation.navigate("ShopContacts")}
+        >
+          <Text style={styles.actionBtnText}>📞 Thông tin liên hệ</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Active Packages */}

@@ -240,39 +240,62 @@ export const shopApi = {
   async getMyPosts() {
     return apiGet("/products/shop/my-products", { auth: true });
   },
-  async createPost({ title, description, price, category, images }) {
+  async createPost({ title, description, price, stock, category, images }) {
     // Backend expects: name, description, images, category, brand, price, stock, specs
     return apiPost(
       "/products",
-      { 
-        name: title, 
-        description, 
-        price: { amount: price }, 
-        category, 
+      {
+        name: title,
+        description,
+        price: { amount: price },
+        category,
         images,
         brand: "",
-        stock: 1,
+        stock: stock || 1,
         specs: {}
       },
       { auth: true }
     );
   },
-  async updatePost(postId, { title, description, price, category, images }) {
+  async updatePost(postId, { title, description, price, stock, category, images }) {
     // Backend expects: name, description, images, category, brand, price, stock, specs
     return apiPut(
       `/products/${postId}`,
-      { 
-        name: title, 
-        description, 
-        price: typeof price === 'object' ? price : { amount: price }, 
-        category, 
+      {
+        name: title,
+        description,
+        price: typeof price === 'object' ? price : { amount: price },
+        stock,
+        category,
         images
       },
       { auth: true }
     );
   },
+  async updateProductStatus(postId, { status }) {
+    return apiPut(
+      `/products/${postId}`,
+      { status },
+      { auth: true }
+    );
+  },
   async deletePost(postId) {
     return apiDelete(`/products/${postId}`, { auth: true });
+  },
+
+  // Contacts
+  async getContacts(filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (filters.status) queryParams.append("status", filters.status);
+    if (filters.page) queryParams.append("page", filters.page);
+    if (filters.limit) queryParams.append("limit", filters.limit);
+    
+    const queryString = queryParams.toString();
+    const path = `/contacts/shop/my-contacts${queryString ? `?${queryString}` : ""}`;
+    return apiGet(path, { auth: true });
+  },
+  async updateContactStatus(contactId, { status }) {
+    return apiPut(`/contacts/${contactId}/status`, { status }, { auth: true });
   },
 };
 
@@ -320,6 +343,14 @@ export const customerApi = {
     return apiPost("/auth/logout", {}, { auth: true });
   },
   
+  // Profile
+  async getProfile() {
+    return apiGet("/users/profile", { auth: true });
+  },
+  async updateProfile({ fullName, phoneNumber, address, dateOfBirth }) {
+    return apiPut("/users/profile", { fullName, phoneNumber, address, dateOfBirth }, { auth: true });
+  },
+  
   // Products
   async getProducts(filters = {}) {
     const queryParams = new URLSearchParams();
@@ -337,6 +368,57 @@ export const customerApi = {
   },
   async getProductById(productId) {
     return apiGet(`/products/${productId}`, { auth: false }); // Public endpoint
+  },
+  
+  // Contact Shop
+  async checkContact(productId, customerEmail = null) {
+    const queryParams = new URLSearchParams();
+    if (customerEmail) queryParams.append("customerEmail", customerEmail);
+    const queryString = queryParams.toString();
+    const path = `/contacts/check/${productId}${queryString ? `?${queryString}` : ""}`;
+    // Try with auth first, fallback to no auth
+    try {
+      const token = await AsyncStorage.getItem("auth_token");
+      if (token) {
+        return apiGet(path, { auth: true });
+      }
+    } catch (e) {
+      // Continue without auth
+    }
+    return apiGet(path, { auth: false });
+  },
+  async contactShop(productId, { customerName, customerPhone, customerEmail, message }) {
+    // Try to get token from AsyncStorage, but don't fail if not available
+    try {
+      const token = await AsyncStorage.getItem("auth_token");
+      if (token) {
+        return apiPost(
+          "/contacts",
+          {
+            productId,
+            customerName,
+            customerPhone,
+            customerEmail,
+            message,
+          },
+          { auth: true }
+        );
+      }
+    } catch (e) {
+      // Continue without auth
+    }
+    // If no token, send without auth
+    return apiPost(
+      "/contacts",
+      {
+        productId,
+        customerName,
+        customerPhone,
+        customerEmail,
+        message,
+      },
+      { auth: false }
+    );
   },
 };
 
