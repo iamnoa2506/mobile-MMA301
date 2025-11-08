@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from "@react-native-picker/picker";
 import { authApi } from "../api/client";
 
 export default function RegisterScreen({ navigation }) {
@@ -15,6 +16,11 @@ export default function RegisterScreen({ navigation }) {
       Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin");
       return;
     }
+    if (password !== confirmPassword) {
+      Alert.alert("Lỗi", "Mật khẩu và xác nhận mật khẩu không khớp");
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await authApi.register({ email, password, confirmPassword, roleName });
@@ -23,7 +29,7 @@ export default function RegisterScreen({ navigation }) {
       await AsyncStorage.setItem("auth_user", JSON.stringify(res?.data?.user || {}));
       navigation.reset({ index: 0, routes: [{ name: "Home" }] });
     } catch (e) {
-      Alert.alert("Đăng ký thất bại", e?.message || "Có lỗi xảy ra");
+      Alert.alert("Đăng ký thất bại", e?.data?.message || e?.message || "Có lỗi xảy ra");
     } finally {
       setLoading(false);
     }
@@ -31,7 +37,13 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Logo/Illustration */}
+      <Image
+        source={require("../../assets/electricbike.jpg")} // logo/app hình xe điện
+        style={styles.logo}
+      />
       <Text style={styles.title}>Đăng ký</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -43,27 +55,41 @@ export default function RegisterScreen({ navigation }) {
       <TextInput
         style={styles.input}
         placeholder="Mật khẩu (≥ 6 ký tự)"
-        secureTextEntry={true}
+        secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
       <TextInput
         style={styles.input}
         placeholder="Xác nhận mật khẩu"
-        secureTextEntry={true}
+        secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Role (CUSTOMER/SHOP)"
-        autoCapitalize="characters"
-        value={roleName}
-        onChangeText={setRoleName}
-      />
-      <Button title={loading ? "Đang xử lý..." : "Đăng ký"} onPress={onRegister} disabled={loading} />
-      <View style={{ height: 12 }} />
-      <Button title="Đã có tài khoản? Đăng nhập" onPress={() => navigation.navigate("Login")}/>
+
+      <Text style={{ marginBottom: 6 }}>Vai trò:</Text>
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={roleName}
+          onValueChange={(itemValue) => setRoleName(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Customer" value="CUSTOMER" />
+          <Picker.Item label="Shop" value="SHOP" />
+        </Picker>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, loading && { opacity: 0.7 }]}
+        onPress={onRegister}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{loading ? "Đang xử lý..." : "Đăng ký"}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+        <Text style={styles.link}>Đã có tài khoản? Đăng nhập</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -73,20 +99,62 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: "center",
+    backgroundColor: "#f0f4f7",
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: "center",
+    marginBottom: 20,
+    resizeMode: "contain",
   },
   title: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#111",
+    textAlign: "center",
+    marginBottom: 24,
   },
   input: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
+    borderColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  pickerContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 50,
+  },
+  button: {
+    backgroundColor: "#00b894",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
     marginBottom: 12,
   },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  link: {
+    color: "#0984e3",
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 14,
+  },
 });
-
-
-
