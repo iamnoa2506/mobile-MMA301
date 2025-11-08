@@ -91,6 +91,115 @@ export async function apiPost(path, body, opts = {}) {
   }
 }
 
+export async function apiGet(path, opts = {}) {
+  const url = `${BASE_URL}${path}`;
+  const headers = await buildHeaders(opts.auth === true);
+  
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers,
+    });
+    
+    const json = await res.json().catch(() => ({}));
+    
+    if (!res.ok) {
+      const message = json?.message || `Request failed (${res.status})`;
+      const error = new Error(message);
+      error.status = res.status;
+      error.data = json;
+      throw error;
+    }
+    
+    return json;
+  } catch (error) {
+    if (error.message === "Network request failed" || error.message.includes("fetch")) {
+      const networkError = new Error(
+        `Không thể kết nối đến server. Vui lòng kiểm tra:\n` +
+        `1. Server đang chạy tại ${BASE_URL}\n` +
+        `2. Địa chỉ IP trong client.js đúng với máy tính của bạn\n` +
+        `3. Firewall không chặn kết nối`
+      );
+      networkError.isNetworkError = true;
+      throw networkError;
+    }
+    throw error;
+  }
+}
+
+export async function apiPut(path, body, opts = {}) {
+  const url = `${BASE_URL}${path}`;
+  const headers = await buildHeaders(opts.auth === true);
+  
+  try {
+    const res = await fetch(url, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(body || {}),
+    });
+    
+    const json = await res.json().catch(() => ({}));
+    
+    if (!res.ok) {
+      const message = json?.message || `Request failed (${res.status})`;
+      const error = new Error(message);
+      error.status = res.status;
+      error.data = json;
+      throw error;
+    }
+    
+    return json;
+  } catch (error) {
+    if (error.message === "Network request failed" || error.message.includes("fetch")) {
+      const networkError = new Error(
+        `Không thể kết nối đến server. Vui lòng kiểm tra:\n` +
+        `1. Server đang chạy tại ${BASE_URL}\n` +
+        `2. Địa chỉ IP trong client.js đúng với máy tính của bạn\n` +
+        `3. Firewall không chặn kết nối`
+      );
+      networkError.isNetworkError = true;
+      throw networkError;
+    }
+    throw error;
+  }
+}
+
+export async function apiDelete(path, opts = {}) {
+  const url = `${BASE_URL}${path}`;
+  const headers = await buildHeaders(opts.auth === true);
+  
+  try {
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers,
+    });
+    
+    const json = await res.json().catch(() => ({}));
+    
+    if (!res.ok) {
+      const message = json?.message || `Request failed (${res.status})`;
+      const error = new Error(message);
+      error.status = res.status;
+      error.data = json;
+      throw error;
+    }
+    
+    return json;
+  } catch (error) {
+    if (error.message === "Network request failed" || error.message.includes("fetch")) {
+      const networkError = new Error(
+        `Không thể kết nối đến server. Vui lòng kiểm tra:\n` +
+        `1. Server đang chạy tại ${BASE_URL}\n` +
+        `2. Địa chỉ IP trong client.js đúng với máy tính của bạn\n` +
+        `3. Firewall không chặn kết nối`
+      );
+      networkError.isNetworkError = true;
+      throw networkError;
+    }
+    throw error;
+  }
+}
+
 export const authApi = {
   async login({ email, password }) {
     return apiPost("/auth/login", { email, password });
@@ -100,6 +209,70 @@ export const authApi = {
   },
   async logout() {
     return apiPost("/auth/logout", {}, { auth: true });
+  },
+};
+
+export const shopApi = {
+  async logout() {
+    return apiPost("/auth/logout", {}, { auth: true });
+  },
+  
+  // Wallet
+  async getWallet() {
+    return apiGet("/wallet", { auth: true });
+  },
+  async deposit({ amount }) {
+    return apiPost("/wallet/deposit", { amount }, { auth: true });
+  },
+  
+  // Packages
+  async getAvailablePackages() {
+    return apiGet("/packages", { auth: false }); // Public endpoint
+  },
+  async getMyPackages() {
+    return apiGet("/packages/shop/my-packages", { auth: true });
+  },
+  async purchasePackage({ packageId }) {
+    return apiPost("/packages/purchase", { packageId }, { auth: true });
+  },
+  
+  // Posts (Products)
+  async getMyPosts() {
+    return apiGet("/products/shop/my-products", { auth: true });
+  },
+  async createPost({ title, description, price, category, images }) {
+    // Backend expects: name, description, images, category, brand, price, stock, specs
+    return apiPost(
+      "/products",
+      { 
+        name: title, 
+        description, 
+        price: { amount: price }, 
+        category, 
+        images,
+        brand: "",
+        stock: 1,
+        specs: {}
+      },
+      { auth: true }
+    );
+  },
+  async updatePost(postId, { title, description, price, category, images }) {
+    // Backend expects: name, description, images, category, brand, price, stock, specs
+    return apiPut(
+      `/products/${postId}`,
+      { 
+        name: title, 
+        description, 
+        price: typeof price === 'object' ? price : { amount: price }, 
+        category, 
+        images
+      },
+      { auth: true }
+    );
+  },
+  async deletePost(postId) {
+    return apiDelete(`/products/${postId}`, { auth: true });
   },
 };
 
