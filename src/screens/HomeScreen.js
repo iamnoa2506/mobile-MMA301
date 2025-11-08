@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { authApi } from "../api/client";
 
 export default function HomeScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -9,26 +8,30 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     (async () => {
       const stored = await AsyncStorage.getItem("auth_user");
-      if (stored) setUser(JSON.parse(stored));
+      if (stored) {
+        const userData = JSON.parse(stored);
+        setUser(userData);
+        
+        // Redirect based on role
+        if (userData?.roleName === "SHOP") {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "ShopHome" }],
+          });
+        } else if (userData?.roleName === "ADMIN") {
+          // TODO: Navigate to Admin screens when implemented
+          // navigation.reset({ index: 0, routes: [{ name: "AdminHome" }] });
+        } else if (userData?.roleName === "CUSTOMER") {
+          // TODO: Navigate to Customer screens when implemented
+          // navigation.reset({ index: 0, routes: [{ name: "CustomerHome" }] });
+        }
+      }
     })();
   }, []);
 
-  const onLogout = async () => {
-    try {
-      await authApi.logout().catch(() => {});
-    } finally {
-      await AsyncStorage.removeItem("auth_token");
-      await AsyncStorage.removeItem("auth_user");
-      navigation.reset({ index: 0, routes: [{ name: "Login" }] });
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Xin chào</Text>
-      <Text>{user?.email || "User"}</Text>
-      <View style={{ height: 16 }} />
-      <Button title="Đăng xuất" onPress={onLogout} />
+    <View style={[styles.container, styles.center]}>
+      <ActivityIndicator size="large" color="#00b894" />
     </View>
   );
 }
@@ -36,13 +39,11 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: "center",
+    backgroundColor: "#fff",
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 8,
+  center: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

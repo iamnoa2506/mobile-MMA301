@@ -9,6 +9,13 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
 
+// Shop Screens
+import ShopHomeScreen from './src/screens/shop/ShopHomeScreen';
+import ShopWalletScreen from './src/screens/shop/ShopWalletScreen';
+import ShopPackageScreen from './src/screens/shop/ShopPackageScreen';
+import ShopCreatePostScreen from './src/screens/shop/ShopCreatePostScreen';
+import ShopPostsScreen from './src/screens/shop/ShopPostsScreen';
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -17,8 +24,20 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem('auth_token');
+      const userStr = await AsyncStorage.getItem('auth_user');
       console.log('Token:', token);
-      setInitialRoute(token ? 'Home' : 'Login');
+      
+      if (token && userStr) {
+        const user = JSON.parse(userStr);
+        // Redirect based on role
+        if (user?.roleName === 'SHOP') {
+          setInitialRoute('ShopHome');
+        } else {
+          setInitialRoute('Home');
+        }
+      } else {
+        setInitialRoute('Login');
+      }
     })();
   }, []);
 
@@ -35,9 +54,17 @@ export default function App() {
       <NavigationContainer>
         <StatusBar style="auto" />
         <Stack.Navigator initialRouteName={initialRoute}>
+          {/* Auth Screens */}
           <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Đăng nhập' }} />
           <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Đăng ký' }} />
           <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Trang chủ' }} />
+          
+          {/* Shop Screens */}
+          <Stack.Screen name="ShopHome" component={ShopHomeScreen} options={{ title: 'Trang chủ Shop' }} />
+          <Stack.Screen name="ShopWallet" component={ShopWalletScreen} options={{ title: 'Ví của tôi' }} />
+          <Stack.Screen name="ShopPackage" component={ShopPackageScreen} options={{ title: 'Gói đăng bài' }} />
+          <Stack.Screen name="ShopCreatePost" component={ShopCreatePostScreen} options={{ title: 'Tạo bài đăng' }} />
+          <Stack.Screen name="ShopPosts" component={ShopPostsScreen} options={{ title: 'Quản lý bài đăng' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
