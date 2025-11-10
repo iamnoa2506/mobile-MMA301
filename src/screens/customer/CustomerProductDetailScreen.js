@@ -221,7 +221,16 @@ export default function CustomerProductDetailScreen({ route, navigation }) {
         {product.shopId && (
           <View style={styles.shopCard}>
             <Text style={styles.shopTitle}>Thông tin Shop</Text>
-            <Text style={styles.shopName}>{product.shopId.shopName || "N/A"}</Text>
+            <View style={styles.shopHeader}>
+              {product.shopId.logo ? (
+                <Image
+                  source={{ uri: product.shopId.logo }}
+                  style={styles.shopLogo}
+                  resizeMode="cover"
+                />
+              ) : null}
+              <Text style={styles.shopName}>{product.shopId.shopName || "N/A"}</Text>
+            </View>
             {product.shopId.address && (
               <Text style={styles.shopAddress}>📍 {product.shopId.address}</Text>
             )}
@@ -231,7 +240,7 @@ export default function CustomerProductDetailScreen({ route, navigation }) {
               disabled={hasContacted}
             >
               <Text style={styles.contactBtnText}>
-                {hasContacted ? "✓ Đã liên hệ với người bán" : "📞 Liên hệ với người bán"}
+                {hasContacted ? "✓ Đã liên hệ với Shop" : "📞 Liên hệ với Shop"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -444,11 +453,23 @@ const styles = StyleSheet.create({
     color: "#111",
     marginBottom: 8,
   },
+  shopHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 10,
+  },
+  shopLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+  },
   shopName: {
     fontSize: 18,
     fontWeight: "600",
     color: "#00b894",
-    marginBottom: 4,
+    flex: 1,
   },
   shopAddress: {
     fontSize: 14,

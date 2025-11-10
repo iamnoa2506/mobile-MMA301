@@ -14,8 +14,14 @@ import { shopApi } from "../../api/client";
 export default function ShopWalletScreen({ navigation }) {
   const [wallet, setWallet] = useState({ balance: 0, transactions: [] });
   const [amount, setAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountHolder, setAccountHolder] = useState("");
   const [loading, setLoading] = useState(false);
   const [depositing, setDepositing] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [showWithdrawForm, setShowWithdrawForm] = useState(false);
 
   useEffect(() => {
     loadWallet();
@@ -38,10 +44,14 @@ export default function ShopWalletScreen({ navigation }) {
   const loadWallet = async () => {
     try {
       setLoading(true);
-      const res = await shopApi.getWallet();
+      const [walletRes, transactionsRes] = await Promise.all([
+        shopApi.getWallet().catch(() => ({ data: { wallet: { balance: 0 } } })),
+        shopApi.getTransactions().catch(() => ({ data: { transactions: [] } })),
+      ]);
       // Backend returns: { success: true, data: { wallet } }
-      const walletData = res?.data?.wallet || { balance: 0 };
-      setWallet({ ...walletData, transactions: walletData.transactions || [] });
+      const walletData = walletRes?.data?.wallet || { balance: 0 };
+      const transactions = transactionsRes?.data?.transactions || [];
+      setWallet({ ...walletData, transactions });
     } catch (e) {
       // Silently handle error - API might not be implemented yet
       console.log("Wallet error:", e?.message || e);
@@ -54,6 +64,11 @@ export default function ShopWalletScreen({ navigation }) {
   const handleAmountChange = (text) => {
     const formatted = formatCurrency(text);
     setAmount(formatted);
+  };
+
+  const handleWithdrawAmountChange = (text) => {
+    const formatted = formatCurrency(text);
+    setWithdrawAmount(formatted);
   };
 
   const handleDeposit = async () => {
@@ -79,6 +94,65 @@ export default function ShopWalletScreen({ navigation }) {
       Alert.alert("Lỗi", e?.message || "Không thể nạp tiền");
     } finally {
       setDepositing(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    const withdrawAmountNum = parseCurrency(withdrawAmount);
+    if (!withdrawAmount || withdrawAmountNum <= 0) {
+      Alert.alert("Lỗi", "Vui lòng nhập số tiền hợp lệ");
+      return;
+    }
+
+    if (withdrawAmountNum > wallet.balance) {
+      Alert.alert("Lỗi", "Số dư không đủ để rút tiền");
+      return;
+    }
+
+    if (!bankAccount.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập số tài khoản ngân hàng");
+      return;
+    }
+
+    if (!bankName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên ngân hàng");
+      return;
+    }
+
+    if (!accountHolder.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập tên chủ tài khoản");
+      return;
+    }
+
+    try {
+      setWithdrawing(true);
+      await shopApi.withdraw({
+        amount: withdrawAmountNum,
+        bankAccount: bankAccount.trim(),
+        bankName: bankName.trim(),
+        accountHolder: accountHolder.trim(),
+      });
+      Alert.alert(
+        "Thành công",
+        "Yêu cầu rút tiền đã được gửi thành công. Tiền sẽ được chuyển vào tài khoản của bạn trong vòng 1-3 ngày làm việc.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setWithdrawAmount("");
+              setBankAccount("");
+              setBankName("");
+              setAccountHolder("");
+              setShowWithdrawForm(false);
+              loadWallet();
+            },
+          },
+        ]
+      );
+    } catch (e) {
+      Alert.alert("Lỗi", e?.message || "Không thể rút tiền");
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -131,6 +205,65 @@ export default function ShopWalletScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* Withdraw Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Rút tiền từ ví</Text>
+          <TouchableOpacity
+            onPress={() => setShowWithdrawForm(!showWithdrawForm)}
+            style={styles.toggleBtn}
+          >
+            <Text style={styles.toggleBtnText}>
+              {showWithdrawForm ? "Ẩn" : "Hiện"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {showWithdrawForm && (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Nhập số tiền muốn rút (VNĐ)"
+              keyboardType="numeric"
+              value={withdrawAmount}
+              onChangeText={handleWithdrawAmountChange}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Số tài khoản ngân hàng *"
+              value={bankAccount}
+              onChangeText={setBankAccount}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Tên ngân hàng *"
+              value={bankName}
+              onChangeText={setBankName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Tên chủ tài khoản *"
+              value={accountHolder}
+              onChangeText={setAccountHolder}
+            />
+            <TouchableOpacity
+              style={[
+                styles.withdrawBtn,
+                withdrawing && styles.withdrawBtnDisabled,
+              ]}
+              onPress={handleWithdraw}
+              disabled={withdrawing}
+            >
+              {withdrawing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.withdrawBtnText}>Rút tiền</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
       {/* Transaction History */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Lịch sử giao dịch</Text>
@@ -139,7 +272,11 @@ export default function ShopWalletScreen({ navigation }) {
             <View key={transaction._id} style={styles.transactionItem}>
               <View style={styles.transactionInfo}>
                 <Text style={styles.transactionType}>
-                  {transaction.type === "DEPOSIT" ? "Nạp tiền" : "Chi tiêu"}
+                  {transaction.type === "DEPOSIT"
+                    ? "Nạp tiền"
+                    : transaction.type === "WITHDRAW"
+                    ? "Rút tiền"
+                    : "Chi tiêu"}
                 </Text>
                 <Text style={styles.transactionDate}>
                   {new Date(transaction.createdAt).toLocaleString("vi-VN")}
@@ -227,11 +364,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111",
-    marginBottom: 12,
+  },
+  toggleBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#e3f2fd",
+  },
+  toggleBtnText: {
+    color: "#0984e3",
+    fontSize: 14,
+    fontWeight: "600",
   },
   input: {
     backgroundColor: "#fff",
@@ -252,6 +405,21 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   depositBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  withdrawBtn: {
+    backgroundColor: "#e74c3c",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  withdrawBtnDisabled: {
+    opacity: 0.7,
+  },
+  withdrawBtnText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",

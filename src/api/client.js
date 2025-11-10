@@ -221,8 +221,14 @@ export const shopApi = {
   async getWallet() {
     return apiGet("/wallet", { auth: true });
   },
+  async getTransactions() {
+    return apiGet("/wallet/transactions", { auth: true });
+  },
   async deposit({ amount }) {
     return apiPost("/wallet/deposit", { amount }, { auth: true });
+  },
+  async withdraw({ amount, bankAccount, bankName, accountHolder }) {
+    return apiPost("/wallet/withdraw", { amount, bankAccount, bankName, accountHolder }, { auth: true });
   },
   
   // Packages
